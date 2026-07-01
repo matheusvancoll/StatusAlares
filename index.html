@@ -137,7 +137,7 @@
     async function initDashboard() {
         try {
             // Busca os dados diretamente do arquivo JSON na mesma pasta
-            const response = await fetch('speedtests_1.2.json');
+            const response = await fetch('speedtests_1.1.json');
             if (!response.ok) {
                 throw new Error(`Erro ao carregar JSON: ${response.statusText}`);
             }
