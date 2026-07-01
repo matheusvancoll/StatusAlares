@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speed Test Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1923;
+            color: #e0e0e0;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 2rem;
+            color: #fff;
+        }
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 30px;
+            font-size: 0.9rem;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: #1a2733;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            border: 1px solid #2a3a4a;
+        }
+        .stat-card .label {
+            font-size: 0.8rem;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+        .stat-card .value {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        .stat-card .unit {
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .stat-card.download .value { color: #36a2eb; }
+        .stat-card.upload .value { color: #4bc0c0; }
+        .stat-card.ping .value { color: #ffce56; }
+        .stat-card.errors .value { color: #ff6384; }
+
+        .chart-container {
+            background: #1a2733;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #2a3a4a;
+        }
+        .chart-container h2 {
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            color: #ccc;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+    </style>
+</head>
+<body>
+    <h1>&#9889; Speed Test Dashboard</h1>
+    <p class="subtitle">Resultados dos testes de velocidade - 30/06/2026</p>
+
+    <div class="stats-grid">
+        <div class="stat-card download">
+            <div class="label">Média Download</div>
+            <div class="value" id="avg-download">--</div>
+            <div class="unit">Mbps</div>
+        </div>
+        <div class="stat-card upload">
+            <div class="label">Média Upload</div>
+            <div class="value" id="avg-upload">--</div>
+            <div class="unit">Mbps</div>
+        </div>
+        <div class="stat-card ping">
+            <div class="label">Média Ping</div>
+            <div class="value" id="avg-ping">--</div>
+            <div class="unit">ms</div>
+        </div>
+        <div class="stat-card errors">
+            <div class="label">Testes com Erro</div>
+            <div class="value" id="error-count">--</div>
+            <div class="unit">falhas</div>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>Download &amp; Upload (Mbps)</h2>
+        <div class="chart-wrapper">
+            <canvas id="speedChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>Ping (ms)</h2>
+        <div class="chart-wrapper">
+            <canvas id="pingChart"></canvas>
+        </div>
+    </div>
+
+    <div class="chart-container">
+        <h2>Download vs Upload (Dispersão)</h2>
+        <div class="chart-wrapper">
+            <canvas id="scatterChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+    const rawData = 
+[{"id":103,"ping":94,"download":19.24,"upload":155.59,"created":"2026-06-30T20:18:21.719Z"},{"id":102,"ping":90,"download":13.32,"upload":87.65,"created":"2026-06-30T20:17:30.792Z"},{"id":101,"ping":90,"download":19.52,"upload":210.15,"created":"2026-06-30T20:15:21.860Z"},{"id":100,"ping":90,"download":18.56,"upload":134.83,"created":"2026-06-30T20:14:21.735Z"},{"id":99,"ping":93,"download":10.96,"upload":161.55,"created":"2026-06-30T20:13:22.002Z"},{"id":98,"ping":90,"download":18.47,"upload":185.23,"created":"2026-06-30T20:12:21.735Z"},{"id":97,"ping":90,"download":19.45,"upload":147.72,"created":"2026-06-30T20:11:21.534Z"},{"id":96,"ping":89,"download":18,"upload":73.39,"created":"2026-06-30T20:10:21.755Z"},{"id":95,"ping":90,"download":19.59,"upload":155.73,"created":"2026-06-30T20:09:34.027Z"},{"id":94,"ping":91,"download":18.77,"upload":179.58,"created":"2026-06-30T20:07:21.543Z"},{"id":93,"ping":90,"download":20.2,"upload":169.59,"created":"2026-06-30T20:06:21.532Z"},{"id":92,"ping":90,"download":18.49,"upload":195.86,"created":"2026-06-30T20:05:21.544Z"},{"id":91,"ping":89,"download":18.8,"upload":203.06,"created":"2026-06-30T20:04:21.671Z"},{"id":90,"ping":91,"download":6,"upload":201.7,"created":"2026-06-30T20:03:21.532Z"},{"id":89,"ping":89,"download":18.89,"upload":180.29,"created":"2026-06-30T20:02:21.713Z"},{"id":88,"ping":90,"download":19.24,"upload":189.04,"created":"2026-06-30T20:01:21.658Z"},{"id":87,"ping":89,"download":17.3,"upload":114.2,"created":"2026-06-30T20:00:22.005Z"},{"id":86,"ping":89,"download":19.27,"upload":219.78,"created":"2026-06-30T19:59:21.540Z"},{"id":85,"ping":89,"download":18.31,"upload":202.91,"created":"2026-06-30T19:58:21.554Z"},{"id":84,"ping":100,"download":18.1,"upload":169.05,"created":"2026-06-30T19:57:21.746Z"},{"id":83,"ping":90,"download":18.63,"upload":204.25,"created":"2026-06-30T19:56:21.738Z"},{"id":82,"ping":88,"download":18.59,"upload":212.74,"created":"2026-06-30T19:55:21.534Z"},{"id":81,"ping":89,"download":18.84,"upload":187.22,"created":"2026-06-30T19:54:21.536Z"},{"id":80,"ping":90,"download":19.33,"upload":110.6,"created":"2026-06-30T19:53:22.348Z"},{"id":79,"ping":89,"download":8.36,"upload":94.97,"created":"2026-06-30T19:52:24.188Z"},{"id":78,"ping":88,"download":4.88,"upload":8.28,"created":"2026-06-30T19:51:21.648Z"},{"id":77,"ping":91,"download":18.66,"upload":160.31,"created":"2026-06-30T19:50:21.527Z"},{"id":76,"ping":89,"download":18.82,"upload":190.43,"created":"2026-06-30T19:49:21.724Z"},{"id":75,"ping":89,"download":19.27,"upload":143.34,"created":"2026-06-30T19:48:21.742Z"},{"id":74,"ping":89,"download":18.63,"upload":187.25,"created":"2026-06-30T19:47:21.668Z"},{"id":73,"ping":89,"download":19,"upload":133.17,"created":"2026-06-30T19:46:21.528Z"},{"id":72,"ping":89,"download":18.78,"upload":201.36,"created":"2026-06-30T19:45:21.562Z"},{"id":71,"ping":89,"download":18.61,"upload":181.54,"created":"2026-06-30T19:44:21.570Z"},{"id":70,"ping":90,"download":19.1,"upload":157.05,"created":"2026-06-30T19:43:21.771Z"},{"id":69,"ping":90,"download":19.78,"upload":158.16,"created":"2026-06-30T19:42:21.696Z"},{"id":68,"ping":90,"download":19.9,"upload":138.26,"created":"2026-06-30T19:41:21.588Z"},{"id":67,"ping":89,"download":18.4,"upload":180.19,"created":"2026-06-30T19:40:21.559Z"},{"id":66,"ping":89,"download":19.38,"upload":140.57,"created":"2026-06-30T19:39:21.568Z"},{"id":65,"ping":89,"download":19.52,"upload":161.5,"created":"2026-06-30T19:38:21.800Z"},{"id":64,"ping":90,"download":18.49,"upload":186.7,"created":"2026-06-30T19:37:21.543Z"},{"id":63,"ping":88,"download":18.54,"upload":189.05,"created":"2026-06-30T19:36:21.744Z"},{"id":62,"ping":111,"download":6.44,"upload":15.26,"created":"2026-06-30T19:35:21.663Z"},{"id":61,"ping":93,"download":19.22,"upload":94.53,"created":"2026-06-30T19:34:21.988Z"},{"id":60,"ping":89,"download":19.12,"upload":62.91,"created":"2026-06-30T19:33:21.568Z"},{"id":59,"ping":88,"download":18.56,"upload":153.3,"created":"2026-06-30T19:32:21.542Z"},{"id":57,"ping":91,"download":14.14,"upload":105.62,"created":"2026-06-30T19:30:21.721Z"},{"id":56,"ping":92,"download":15.83,"upload":141.4,"created":"2026-06-30T19:29:21.896Z"},{"id":55,"ping":95,"download":17.21,"upload":70.89,"created":"2026-06-30T19:28:22.903Z"},{"id":54,"ping":89,"download":105.37,"upload":155.03,"created":"2026-06-30T19:27:21.997Z"},{"id":53,"ping":94,"download":108.07,"upload":137.99,"created":"2026-06-30T19:26:21.676Z"},{"id":52,"ping":90,"download":83.1,"upload":163.17,"created":"2026-06-30T19:25:21.907Z"},{"id":51,"ping":90,"download":97.58,"upload":115.51,"created":"2026-06-30T19:24:23.034Z"},{"id":50,"ping":91,"download":66.01,"upload":98.81,"created":"2026-06-30T19:23:24.220Z"},{"id":49,"ping":89,"download":148.81,"upload":140.79,"created":"2026-06-30T19:21:23.436Z"},{"id":48,"ping":102,"download":146.03,"upload":82.67,"created":"2026-06-30T19:20:21.774Z"},{"id":47,"ping":90,"download":91.74,"upload":171.06,"created":"2026-06-30T19:19:22.110Z"},{"id":46,"ping":89,"download":149.57,"upload":77.77,"created":"2026-06-30T19:18:38.205Z"},{"id":34,"ping":21,"download":123.04,"upload":178.59,"created":"2026-06-30T18:23:30.815Z"},{"id":33,"ping":8,"download":194.24,"upload":180.4,"created":"2026-06-30T18:22:31.894Z"},{"id":32,"ping":32,"download":51.78,"upload":290.82,"created":"2026-06-30T18:21:33.918Z"},{"id":31,"ping":4,"download":222.81,"upload":195.65,"created":"2026-06-30T18:20:33.077Z"},{"id":29,"ping":17,"download":204.2,"upload":349.84,"created":"2026-06-30T18:18:24.452Z"},{"id":28,"ping":105,"download":163.33,"upload":323.69,"created":"2026-06-30T18:17:30.645Z"},{"id":26,"ping":4,"download":167.03,"upload":314.12,"created":"2026-06-30T18:14:22.748Z"},{"id":25,"ping":6,"download":146.7,"upload":347.5,"created":"2026-06-30T18:13:23.012Z"},{"id":24,"ping":6,"download":99.68,"upload":244.11,"created":"2026-06-30T18:12:34.035Z"},{"id":23,"ping":7,"download":174.18,"upload":301.13,"created":"2026-06-30T18:11:25.112Z"},{"id":22,"ping":6,"download":194.28,"upload":344.39,"created":"2026-06-30T18:10:28.838Z"},{"id":21,"ping":4,"download":165.18,"upload":325.32,"created":"2026-06-30T18:09:17.395Z"},{"id":20,"ping":9,"download":188.13,"upload":348.06,"created":"2026-06-30T18:08:29.174Z"},{"id":19,"ping":16,"download":241.89,"upload":355.76,"created":"2026-06-30T18:07:28.864Z"},{"id":18,"ping":4,"download":251.98,"upload":335.49,"created":"2026-06-30T18:06:25.405Z"},{"id":17,"ping":10,"download":293.85,"upload":352.34,"created":"2026-06-30T18:05:23.307Z"},{"id":16,"ping":33,"download":239.58,"upload":344.53,"created":"2026-06-30T18:04:29.955Z"},{"id":15,"ping":10,"download":233.18,"upload":352.32,"created":"2026-06-30T18:03:26.326Z"},{"id":14,"ping":9,"download":212.58,"upload":307.08,"created":"2026-06-30T18:02:33.261Z"},{"id":13,"ping":3,"download":208.24,"upload":308.32,"created":"2026-06-30T18:01:34.533Z"},{"id":12,"ping":12,"download":64.89,"upload":236.72,"created":"2026-06-30T18:00:33.235Z"},{"id":11,"ping":8,"download":185.99,"upload":324.14,"created":"2026-06-30T17:59:27.555Z"},{"id":10,"ping":17,"download":190.31,"upload":327.29,"created":"2026-06-30T17:58:29.296Z"},{"id":9,"ping":6,"download":140.73,"upload":222.68,"created":"2026-06-30T17:57:31.037Z"},{"id":8,"ping":10,"download":177.18,"upload":214.83,"created":"2026-06-30T17:56:33.487Z"},{"id":7,"ping":7,"download":176.05,"upload":351.75,"created":"2026-06-30T17:55:24.615Z"},{"id":6,"ping":5,"download":169.27,"upload":332.54,"created":"2026-06-30T17:54:32.761Z"},{"id":5,"ping":5,"download":212.95,"upload":353.35,"created":"2026-06-30T17:53:31.122Z"},{"id":4,"ping":20,"download":295.96,"upload":346.14,"created":"2026-06-30T17:52:22.741Z"},{"id":3,"ping":8,"download":288.64,"upload":366.49,"created":"2026-06-30T17:51:14.912Z"},{"id":2,"ping":3,"download":302.28,"upload":341.13,"created":"2026-06-30T17:50:23.346Z"},{"id":1,"ping":3,"download":227.09,"upload":363.33,"created":"2026-06-30T17:49:24.862Z"}];
+
+    // Sort by time ascending
+    const data = rawData.sort((a, b) => new Date(a.created) - new Date(b.created));
+
+    // Calculate averages
+    const avgDownload = (data.reduce((s, d) => s + d.download, 0) / data.length).toFixed(1);
+    const avgUpload = (data.reduce((s, d) => s + d.upload, 0) / data.length).toFixed(1);
+    const avgPing = (data.reduce((s, d) => s + d.ping, 0) / data.length).toFixed(0);
+    const errorCount = 103 - data.length; // total entries minus valid ones
+
+    document.getElementById('avg-download').textContent = avgDownload;
+    document.getElementById('avg-upload').textContent = avgUpload;
+    document.getElementById('avg-ping').textContent = avgPing;
+    document.getElementById('error-count').textContent = errorCount;
+
+    // Format labels as HH:MM
+    const labels = data.map(d => {
+        const date = new Date(d.created);
+        return date.getHours().toString().padStart(2, '0') + ':' + date.getMinutes().toString().padStart(2, '0');
+    });
+
+    // Chart defaults
+    Chart.defaults.color = '#888';
+    Chart.defaults.borderColor = '#2a3a4a';
+
+    // Speed Chart (Download & Upload)
+    new Chart(document.getElementById('speedChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Download (Mbps)',
+                    data: data.map(d => d.download),
+                    borderColor: '#36a2eb',
+                    backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
+                },
+                {
+                    label: 'Upload (Mbps)',
+                    data: data.map(d => d.upload),
+                    borderColor: '#4bc0c0',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)} Mbps`
+                    }
+                }
+            },
+            scales: {
+                x: { 
+                    ticks: { maxTicksLimit: 15 },
+                    title: { display: true, text: 'Horário' }
+                },
+                y: { 
+                    beginAtZero: true,
+                    title: { display: true, text: 'Mbps' }
+                }
+            }
+        }
+    });
+
+    // Ping Chart
+    new Chart(document.getElementById('pingChart'), {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Ping (ms)',
+                data: data.map(d => d.ping),
+                borderColor: '#ffce56',
+                backgroundColor: 'rgba(255, 206, 86, 0.1)',
+                fill: true,
+                tension: 0.3,
+                pointRadius: 2,
+                pointHoverRadius: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: 'index' },
+            plugins: {
+                legend: { position: 'top' }
+            },
+            scales: {
+                x: { 
+                    ticks: { maxTicksLimit: 15 },
+                    title: { display: true, text: 'Horário' }
+                },
+                y: { 
+                    beginAtZero: true,
+                    title: { display: true, text: 'ms' }
+                }
+            }
+        }
+    });
+
+    // Scatter Chart (Download vs Upload)
+    new Chart(document.getElementById('scatterChart'), {
+        type: 'scatter',
+        data: {
+            datasets: [{
+                label: 'Download vs Upload',
+                data: data.map(d => ({ x: d.download, y: d.upload })),
+                backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                borderColor: '#9966ff',
+                pointRadius: 5,
+                pointHoverRadius: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `Download: ${ctx.parsed.x} Mbps | Upload: ${ctx.parsed.y} Mbps`
+                    }
+                }
+            },
+            scales: {
+                x: { 
+                    beginAtZero: true,
+                    title: { display: true, text: 'Download (Mbps)' }
+                },
+                y: { 
+                    beginAtZero: true,
+                    title: { display: true, text: 'Upload (Mbps)' }
+                }
+            }
+        }
+    });
+    </script>
+</body>
+</html>
